@@ -19,10 +19,17 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.nehuenricardi.pomodoroapp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "e004349b-bfaf-4519-a5f8-3a430215fb2f"
+      }
+    },
+    "owner": "nehuenricardi"
   }
 }
