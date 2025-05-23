@@ -30,6 +30,12 @@
         "projectId": "e004349b-bfaf-4519-a5f8-3a430215fb2f"
       }
     },
-    "owner": "nehuenricardi"
+    "owner": "nehuenricardi",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/e004349b-bfaf-4519-a5f8-3a430215fb2f"
+    }
   }
 }
