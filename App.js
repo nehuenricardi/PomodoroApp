@@ -1,13 +1,20 @@
-// ...imports
-import { Audio } from 'expo-av'; // Asegurate de tener este import
-import { SafeAreaView, StyleSheet, Text, View, Platform } from 'react-native';
+import { SafeAreaView, StyleSheet, Text, View, Platform, AppState } from 'react-native';
 import Title from './src/components/Title';
 import Time from './src/components/Time';
 import Buttonc from './src/components/Buttonc';
 import Tabs from './src/components/Tabs';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import playSonido from './src/utility/playSound';
 import { enviarNotificacion } from './src/utility/notificaciones';
+import * as Notifications from 'expo-notifications';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 export default function App() {
   const [time, setTime] = useState(25 * 60);
@@ -15,7 +22,9 @@ export default function App() {
   const [seleccion, setSeleccion] = useState(0);
   const colores = ["#1baf00", "#a1ba00", "#00cfc3"];
 
-  //solicitar permisos
+  const appState = useRef(AppState.currentState);
+  const lastTimeRef = useRef(null); // ⏱ Marca de tiempo al salir
+
   const solicitarPermisosNotificaciones = async () => {
     const { status } = await Notifications.getPermissionsAsync();
     if (status !== "granted") {
@@ -28,7 +37,6 @@ export default function App() {
     console.log("Permiso de notificación concedido");
   };
 
-  // 🔁 Función que devuelve el tiempo base según la pestaña
   const getTiempoBase = () => {
     if (seleccion === 0) return 25 * 60;
     if (seleccion === 1) return 5 * 60;
@@ -42,18 +50,17 @@ export default function App() {
 
   useEffect(() => {
     let intervalo = null;
-
-    const sonido = require("./assets/celebracion.mp3")
+    const sonido = require("./assets/celebracion.mp3");
 
     if (run) {
       intervalo = setInterval(() => {
         setTime(prev => {
           if (prev <= 1) {
             clearInterval(intervalo);
-            setRun(false);         // Detiene el contador
-            playSonido(sonido);          // Reproduce sonido
+            setRun(false);
+            playSonido(sonido);
             enviarNotificacion();
-            return getTiempoBase(); // ⏱ Reinicia el tiempo base automáticamente
+            return getTiempoBase();
           }
           return prev - 1;
         });
@@ -61,6 +68,33 @@ export default function App() {
     }
 
     return () => clearInterval(intervalo);
+  }, [run]);
+
+  // 🎯 Manejo de AppState (foreground / background)
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState) => {
+      if (appState.current.match(/active/) && nextAppState === "background") {
+        // Se va a segundo plano
+        lastTimeRef.current = Date.now();
+      }
+
+      if (appState.current.match(/background/) && nextAppState === "active") {
+        // Vuelve al primer plano
+        if (run && lastTimeRef.current) {
+          const now = Date.now();
+          const elapsed = Math.floor((now - lastTimeRef.current) / 1000);
+          setTime(prev => Math.max(prev - elapsed, 0));
+        }
+      }
+
+      appState.current = nextAppState;
+    };
+
+    const subscription = AppState.addEventListener("change", handleAppStateChange);
+
+    return () => {
+      subscription.remove();
+    };
   }, [run]);
 
   return (
